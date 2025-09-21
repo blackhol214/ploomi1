@@ -47,8 +47,8 @@ class GameScene extends Phaser.Scene {
         graphics.fillRect(0, 0, 32, 32);
         // eyes
         graphics.fillStyle(0x000000);
-        graphics.fillRect(8, 8, 4, 4);
-        graphics.fillRect(20, 8, 4, 4);
+        graphics.fillRect(7, 7, 5, 5);
+        graphics.fillRect(20, 7, 5, 5);
         graphics.generateTexture('ploomi', 32, 32);
         graphics.destroy();
     }
@@ -64,19 +64,29 @@ class GameScene extends Phaser.Scene {
         // Platforms
         this.platforms = this.physics.add.staticGroup();
         // Ground
-        this.platforms.create(400, 580, null).setScale(8, 0.5).refreshBody();
+        let ground = this.add.rectangle(400, 590, 800, 20, 0xffffff);
+        this.physics.add.existing(ground, true);
+        this.platforms.add(ground);
         // Some platforms
-        this.platforms.create(200, 450, null).setScale(2, 0.5).refreshBody();
-        this.platforms.create(600, 350, null).setScale(2, 0.5).refreshBody();
-        this.platforms.create(300, 250, null).setScale(1.5, 0.5).refreshBody();
+        let plat1 = this.add.rectangle(200, 450, 128, 16, 0xffffff);
+        this.physics.add.existing(plat1, true);
+        this.platforms.add(plat1);
+        let plat2 = this.add.rectangle(600, 350, 128, 16, 0xffffff);
+        this.physics.add.existing(plat2, true);
+        this.platforms.add(plat2);
+        let plat3 = this.add.rectangle(300, 250, 96, 16, 0xffffff);
+        this.physics.add.existing(plat3, true);
+        this.platforms.add(plat3);
 
         // Player
         this.player = this.physics.add.sprite(100, 450, 'ploomi');
         this.player.setCollideWorldBounds(true);
         this.player.setBounce(0.2);
+        this.player.setDragX(300);
 
         // Goal
         this.goal = this.add.rectangle(750, 200, 32, 32, 0xff0000);
+        this.physics.add.existing(this.goal, true);
         this.physics.add.overlap(this.player, this.goal, this.reachGoal, null, this);
 
         // Colliders
@@ -88,12 +98,11 @@ class GameScene extends Phaser.Scene {
 
     update() {
         // Controls
+        this.player.setAccelerationX(0);
         if (this.cursors.left.isDown) {
-            this.player.setVelocityX(-160);
+            this.player.setAccelerationX(-200);
         } else if (this.cursors.right.isDown) {
-            this.player.setVelocityX(160);
-        } else {
-            this.player.setVelocityX(0);
+            this.player.setAccelerationX(200);
         }
 
         if (this.cursors.up.isDown && this.player.body.touching.down) {
