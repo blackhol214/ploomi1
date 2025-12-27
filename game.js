@@ -90,19 +90,25 @@ class GameScene extends Phaser.Scene {
         // Background
         this.cameras.main.setBackgroundColor('#0a008fff');
 
-        // Create a night sky backdrop with stars
-        let sky = this.add.rectangle(50000, 300, 100000, 2000, 0x001a4d);
+        // Create a night sky backdrop with clouds
+        let sky = this.add.rectangle(50000, 300, 100000, 2000, 0x001133);
         sky.setScrollFactor(1);
         sky.setDepth(-10);
 
-        // Add stars to the sky
-        for (let i = 0; i < 500; i++) {
-            let x = Phaser.Math.Between(0, 100000);
-            let y = Phaser.Math.Between(0, 2000);
-            let star = this.add.circle(x, y, 2, 0xffffff);
-            star.setScrollFactor(1);
-            star.setDepth(-9);
+        // Add repeating Mario-style bushes
+        let bushGraphics = this.add.graphics();
+        bushGraphics.fillStyle(0x000000);
+        
+        // Bushes on the floor
+        for (let bushX = 0; bushX < 100000; bushX += 1000) {
+            // Draw Mario-style bush (3 circles)
+            bushGraphics.fillCircle(bushX + 20, 575, 15);
+            bushGraphics.fillCircle(bushX + 40, 565, 18);
+            bushGraphics.fillCircle(bushX + 60, 575, 15);
         }
+        
+        bushGraphics.setScrollFactor(1);
+        bushGraphics.setDepth(-8);
 
         // Set larger physics world for scrolling
         this.physics.world.setBounds(0, 0, 100000, 2000);
@@ -135,7 +141,7 @@ class GameScene extends Phaser.Scene {
         // Player
         this.player = this.physics.add.sprite(100, 540, 'ploomi_idle');
         this.player.setBounce(0.2);
-        this.player.setDragX(500);
+        this.player.setDragX(1000);
 
         // Colliders
         this.physics.add.collider(this.player, this.platforms);
