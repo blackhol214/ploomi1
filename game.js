@@ -17,7 +17,7 @@ class TitleScene extends Phaser.Scene {
         // Start button
         const startButton = this.add.text(400, 350, 'Start Plooming!', {
             fontSize: '40px',
-            color: '#ffffff',
+            color: '#ffffffff',
             fontFamily: 'Futura Condensed ExtraBold'
         }).setOrigin(0.5).setInteractive();
 
