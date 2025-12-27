@@ -90,6 +90,18 @@ class GameScene extends Phaser.Scene {
         // Background
         this.cameras.main.setBackgroundColor('#0a008fff');
 
+        // Create a night sky backdrop with stars
+        let sky = this.add.rectangle(5000, 50000, 100000, 100000, 0x001a4d);
+        sky.setScrollFactor(1);
+
+        // Add stars to the sky
+        for (let i = 0; i < 500; i++) {
+            let x = Phaser.Math.Between(0, 100000);
+            let y = Phaser.Math.Between(0, 100000);
+            let star = this.add.circle(x, y, 2, 0xffffff);
+            star.setScrollFactor(1);
+        }
+
         // Set larger physics world for scrolling
         this.physics.world.setBounds(0, 0, 800, 2000);
 
@@ -98,14 +110,25 @@ class GameScene extends Phaser.Scene {
         this.healthText = this.add.text(10, 10, 'Health: 3', { fontSize: '20px', color: '#ffffff', fontFamily: 'Courier New' });
         this.healthText.setScrollFactor(0);
 
-        // Create an infinitely long platform at the bottom
+        // Create platforms
         this.platforms = this.physics.add.staticGroup();
+        
+        // Ground platform
         let ground = this.add.rectangle(400, 1950, 10000, 100, 0xffffff);
         this.physics.add.existing(ground, true);
         this.platforms.add(ground);
 
+        // Invisible walls to prevent falling off
+        let leftWall = this.add.rectangle(-100, 0, 200, 100000, 0x000000);
+        this.physics.add.existing(leftWall, true);
+        this.platforms.add(leftWall);
+        
+        let rightWall = this.add.rectangle(10100, 1950, 200, 100, 0x000000);
+        this.physics.add.existing(rightWall, true);
+        this.platforms.add(rightWall);
+
         // Player
-        this.player = this.physics.add.sprite(400, 1800, 'ploomi_idle');
+        this.player = this.physics.add.sprite(-50, 1800, 'ploomi_idle');
         this.player.setBounce(0.2);
         this.player.setDragX(500);
 
