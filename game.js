@@ -90,40 +90,30 @@ class GameScene extends Phaser.Scene {
         // Background
         this.cameras.main.setBackgroundColor('#0a008fff');
 
+        // Set larger physics world for scrolling
+        this.physics.world.setBounds(0, 0, 800, 2000);
+
         // Health
         this.health = 3;
         this.healthText = this.add.text(10, 10, 'Health: 3', { fontSize: '20px', color: '#ffffff', fontFamily: 'Courier New' });
+        this.healthText.setScrollFactor(0);
 
-        // Platforms
+        // Create an infinitely long platform at the bottom
         this.platforms = this.physics.add.staticGroup();
-        // Ground
-        let ground = this.add.rectangle(400, 590, 800, 20, 0xffffff);
+        let ground = this.add.rectangle(400, 1950, 10000, 100, 0xffffff);
         this.physics.add.existing(ground, true);
         this.platforms.add(ground);
-        // Some platforms
-        let plat1 = this.add.rectangle(200, 450, 128, 16, 0xffffff);
-        this.physics.add.existing(plat1, true);
-        this.platforms.add(plat1);
-        let plat2 = this.add.rectangle(600, 350, 128, 16, 0xffffff);
-        this.physics.add.existing(plat2, true);
-        this.platforms.add(plat2);
-        let plat3 = this.add.rectangle(300, 250, 96, 16, 0xffffff);
-        this.physics.add.existing(plat3, true);
-        this.platforms.add(plat3);
 
         // Player
-        this.player = this.physics.add.sprite(100, 450, 'ploomi_idle');
-        this.player.setCollideWorldBounds(true);
+        this.player = this.physics.add.sprite(400, 1800, 'ploomi_idle');
         this.player.setBounce(0.2);
-        this.player.setDragX(350);
-
-        // Goal
-        this.goal = this.add.rectangle(750, 200, 32, 32, 0xff0000);
-        this.physics.add.existing(this.goal, true);
-        this.physics.add.overlap(this.player, this.goal, this.reachGoal, null, this);
+        this.player.setDragX(500);
 
         // Colliders
         this.physics.add.collider(this.player, this.platforms);
+
+        // Camera follows player
+        this.cameras.main.startFollow(this.player);
 
         // Input
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -132,19 +122,20 @@ class GameScene extends Phaser.Scene {
 
     update() {
         // Controls
-        this.player.setAccelerationX(0);
         if (this.cursors.left.isDown) {
             this.player.setAccelerationX(-350);
         } else if (this.cursors.right.isDown) {
             let speed = 350;
             if (this.zKey.isDown) {
-                speed = 700;
+                speed = 350;
             }
             this.player.setAccelerationX(speed);
+        } else {
+            this.player.setAccelerationX(0);
         }
 
         if (this.cursors.up.isDown && this.player.body.touching.down) {
-            this.player.setVelocityY(-330);
+            this.player.setVelocityY(-290);
         }
 
         // Update eye direction
@@ -156,9 +147,9 @@ class GameScene extends Phaser.Scene {
             this.player.setTexture('ploomi_idle');
         }
 
-        // Check if player falls off
-        if (this.player.y > 600) {
-            this.player.setPosition(100, 450);
+        // Check if player falls off the world
+        if (this.player.y > 2000) {
+            this.player.setPosition(400, 1800);
             this.health--;
             this.healthText.setText('Health: ' + this.health);
             if (this.health <= 0) {
