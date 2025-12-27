@@ -44,7 +44,7 @@ class GameScene extends Phaser.Scene {
         // Generate Ploomi textures
         // Idle
         let graphics = this.add.graphics();
-        graphics.fillStyle(0x0000ff); // blue
+        graphics.fillStyle(0x006600); // dark green
         graphics.fillRect(0, 0, 32, 32);
         graphics.fillStyle(0x000000);
         graphics.fillRect(7, 7, 6, 6);
@@ -54,7 +54,7 @@ class GameScene extends Phaser.Scene {
 
         // Left
         graphics = this.add.graphics();
-        graphics.fillStyle(0x0000ff);
+        graphics.fillStyle(0x006600);
         graphics.fillRect(0, 0, 32, 32);
         graphics.fillStyle(0x000000);
         graphics.fillRect(5, 7, 6, 6);
@@ -64,7 +64,7 @@ class GameScene extends Phaser.Scene {
 
         // Right
         graphics = this.add.graphics();
-        graphics.fillStyle(0x0000ff);
+        graphics.fillStyle(0x006600);
         graphics.fillRect(0, 0, 32, 32);
         graphics.fillStyle(0x000000);
         graphics.fillRect(9, 7, 6, 6);
@@ -110,8 +110,8 @@ class GameScene extends Phaser.Scene {
         bushGraphics.setScrollFactor(1);
         bushGraphics.setDepth(-8);
 
-        // Set larger physics world for scrolling
-        this.physics.world.setBounds(0, 0, 100000, 2000);
+        // Set physics world
+        this.physics.world.setBounds(0, 0, 800, 2000);
 
         // Health
         this.health = 3;
@@ -133,7 +133,7 @@ class GameScene extends Phaser.Scene {
         this.platforms.add(leftWall);
         leftWall.setDepth(-8);
         
-        let rightWall = this.add.rectangle(100050, 300, 100, 2000, 0x001a4d);
+        let rightWall = this.add.rectangle(850, 300, 100, 2000, 0x001a4d);
         this.physics.add.existing(rightWall, true);
         this.platforms.add(rightWall);
         rightWall.setDepth(-8);
@@ -143,11 +143,19 @@ class GameScene extends Phaser.Scene {
         this.player.setBounce(0.2);
         this.player.setDragX(1000);
 
+        // Create particle emitter for dash trail
+        this.particles = this.add.particles(0x00aa00);
+        this.emitter = this.particles.createEmitter({
+            speed: 0,
+            scale: { start: 0.5, end: 0 },
+            alpha: { start: 0.8, end: 0 },
+            lifespan: 400,
+            gravityY: 0,
+            emitting: false
+        });
+
         // Colliders
         this.physics.add.collider(this.player, this.platforms);
-
-        // Camera follows player
-        this.cameras.main.startFollow(this.player);
 
         // Input
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -166,6 +174,18 @@ class GameScene extends Phaser.Scene {
             this.player.setAccelerationX(speed);
         } else {
             this.player.setAccelerationX(0);
+        }
+
+        // Emit particles only when Z key is pressed
+        if (this.zKey.isDown) {
+            // Emit behind Ploomi based on movement direction
+            if (this.player.body.velocity.x > 0) {
+                // Moving right, emit from left side (back)
+                this.emitter.emitParticleAt(this.player.x - 20, this.player.y, 3);
+            } else if (this.player.body.velocity.x < 0) {
+                // Moving left, emit from right side (back)
+                this.emitter.emitParticleAt(this.player.x + 20, this.player.y, 3);
+            }
         }
 
         if (this.cursors.up.isDown && this.player.body.touching.down) {
