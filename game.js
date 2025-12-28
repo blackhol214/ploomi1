@@ -95,20 +95,36 @@ class GameScene extends Phaser.Scene {
         sky.setScrollFactor(1);
         sky.setDepth(-10);
 
-        // Add repeating Mario-style bushes
-        let bushGraphics = this.add.graphics();
-        bushGraphics.fillStyle(0x000000);
+        // Create eye as physics sprite
+        let eyeGraphics = this.add.graphics();
+        eyeGraphics.fillStyle(0x000000);
+        eyeGraphics.fillCircle(20, 20, 20);
+        eyeGraphics.fillStyle(0xffffff);
+        eyeGraphics.fillCircle(20, 20, 12);
+        eyeGraphics.fillStyle(0x000000);
+        eyeGraphics.fillRect(8, 8, 24, 12);
+        eyeGraphics.fillCircle(10, 20, 6);
+        eyeGraphics.fillCircle(50, 20, 12);
+        eyeGraphics.generateTexture('eye', 70, 40);
+        eyeGraphics.destroy();
+
+        this.eye = this.physics.add.sprite(720, 555, 'eye');
+        this.eye.setCollideWorldBounds(false);
+        this.eye.setBounce(1);
+        this.eye.setVelocityX(-100);
+        this.eye.setGravityY(-300);
+        this.eye.setDisplaySize(80, 50);
+        this.eye.body.setSize(80, 50);
+        this.eye.body.setOffset(0, -50);
         
-        // Bushes on the floor
-        for (let bushX = 0; bushX < 100000; bushX += 1000) {
-            // Draw Mario-style bush (3 circles)
-            bushGraphics.fillCircle(bushX + 20, 575, 15);
-            bushGraphics.fillCircle(bushX + 40, 565, 18);
-            bushGraphics.fillCircle(bushX + 60, 575, 15);
-        }
-        
-        bushGraphics.setScrollFactor(1);
-        bushGraphics.setDepth(-8);
+        // Crear una zona de daño adicional en el cuerpo del ojo
+        this.eyeDamageZone = this.physics.add.sprite(720, 555, null);
+        this.eyeDamageZone.body.setSize(80, 30);
+        this.eyeDamageZone.body.setOffset(0, 10);
+        this.eyeDamageZone.setActive(false);
+        this.eyeDamageZone.setVisible(false);
+        this.eyeMinX = 400; // Mitad de la pantalla
+        this.eyeMaxX = 720; // Posición inicial
 
         // Set physics world
         this.physics.world.setBounds(0, 0, 800, 2000);
@@ -156,6 +172,9 @@ class GameScene extends Phaser.Scene {
 
         // Colliders
         this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.collider(this.eye, this.platforms);
+        this.physics.add.overlap(this.player, this.eye, this.hitEyeTop, null, this);
+        this.physics.add.overlap(this.player, this.eyeDamageZone, this.hitEyeBody, null, this);
 
         // Input
         this.cursors = this.input.keyboard.createCursorKeys();
@@ -178,18 +197,14 @@ class GameScene extends Phaser.Scene {
 
         // Emit particles only when Z key is pressed
         if (this.zKey.isDown) {
-            // Emit behind Ploomi based on movement direction
-            if (this.player.body.velocity.x > 0) {
+            // Emit behind Ploomi based on last movement direction
+            if (this.player.body.velocity.x > 10) {
                 // Moving right, emit from left side (back)
                 this.emitter.emitParticleAt(this.player.x - 20, this.player.y, 3);
-            } else if (this.player.body.velocity.x < 0) {
+            } else if (this.player.body.velocity.x < -10) {
                 // Moving left, emit from right side (back)
                 this.emitter.emitParticleAt(this.player.x + 20, this.player.y, 3);
             }
-        }
-
-        if (this.cursors.up.isDown && this.player.body.touching.down) {
-            this.player.setVelocityY(-290);
         }
 
         // Update eye direction
@@ -201,6 +216,23 @@ class GameScene extends Phaser.Scene {
             this.player.setTexture('ploomi_idle');
         }
 
+        if (this.cursors.up.isDown && this.player.body.touching.down) {
+            this.player.setVelocityY(-290);
+        }
+
+        // Eye movement bounds - rebota entre eyeMinX y eyeMaxX
+        if (this.eye.x <= this.eyeMinX) {
+            this.eye.setVelocityX(100);
+        } else if (this.eye.x >= this.eyeMaxX) {
+            this.eye.setVelocityX(-100);
+        }
+        
+        // Mantener la zona de daño en la misma posición que el ojo
+        if (this.eyeDamageZone.active) {
+            this.eyeDamageZone.x = this.eye.x;
+            this.eyeDamageZone.y = this.eye.y;
+        }
+
         // Check if player falls off the world
         if (this.player.y > 2000) {
             this.player.setPosition(100, 540);
@@ -209,6 +241,24 @@ class GameScene extends Phaser.Scene {
             if (this.health <= 0) {
                 this.scene.start('TitleScene');
             }
+        }
+    }
+
+    hitEyeTop() {
+        // Hitbox superior - destruir el ojo si Ploomi salta desde arriba
+        if (this.player.body.velocity.y < -10) {
+            this.eye.destroy();
+            this.eyeDamageZone.destroy();
+            return;
+        }
+    }
+    
+    hitEyeBody() {
+        // Hitbox del cuerpo - dañar a Ploomi
+        this.health--;
+        this.healthText.setText('Health: ' + this.health);
+        if (this.health <= 0) {
+            this.scene.start('TitleScene');
         }
     }
 
