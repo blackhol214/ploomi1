@@ -1,37 +1,60 @@
+const WIDTH = 800;
+const HEIGHT = 600;
+const GROUND_Y = 580; // top of the ground platform
+const FONT = 'Futura Condensed ExtraBold, Futura, Impact, sans-serif';
+
+const PLAYER = {
+    startX: 100,
+    accel: 700,
+    maxSpeed: 200,
+    sprintSpeed: 360, // holding Z
+    jump: -400,
+    stompBounce: -260,
+    invulnerableMs: 1000,
+    maxHealth: 3
+};
+
+const EYE = {
+    minX: 400, // half of the screen
+    maxX: 720, // spawn position
+    speed: 100,
+    speedPerKill: 25,
+    respawnMs: 2500
+};
+
 class TitleScene extends Phaser.Scene {
     constructor() {
         super({ key: 'TitleScene' });
     }
 
     create() {
-        // Pitch black background
         this.cameras.main.setBackgroundColor('#000000');
 
-        // White title text
-        this.add.text(400, 200, 'PLOOMI AND THE COSMIC CORE', {
+        this.add.text(WIDTH / 2, 200, 'PLOOMI AND THE COSMIC CORE', {
             fontSize: '50px',
             color: '#ffffff',
-            fontFamily: 'Futura Condensed ExtraBold'
+            fontFamily: FONT
         }).setOrigin(0.5);
 
-        // Start button
-        const startButton = this.add.text(400, 350, 'Start Plooming!', {
+        const startButton = this.add.text(WIDTH / 2, 350, 'Start Plooming!', {
             fontSize: '40px',
-            color: '#ffffffff',
-            fontFamily: 'Futura Condensed ExtraBold'
-        }).setOrigin(0.5).setInteractive();
+            color: '#ffffff',
+            fontFamily: FONT
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        startButton.on('pointerdown', () => {
-            this.scene.start('GameScene');
-        });
+        this.add.text(WIDTH / 2, 470, '← → move   ↑ jump   Z sprint\nStomp the eye, don\'t touch it!', {
+            fontSize: '18px',
+            color: '#8899bb',
+            fontFamily: 'Courier New',
+            align: 'center'
+        }).setOrigin(0.5);
 
-        startButton.on('pointerover', () => {
-            startButton.setColor('#0055ffff'); // Yellow on hover
-        });
-
-        startButton.on('pointerout', () => {
-            startButton.setColor('#ffffff');
-        });
+        const start = () => this.scene.start('GameScene');
+        startButton.on('pointerdown', start);
+        startButton.on('pointerover', () => startButton.setColor('#0055ff'));
+        startButton.on('pointerout', () => startButton.setColor('#ffffff'));
+        this.input.keyboard.once('keydown-ENTER', start);
+        this.input.keyboard.once('keydown-SPACE', start);
     }
 }
 
@@ -41,193 +64,242 @@ class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        // Generate Ploomi textures
-        // Idle
-        let graphics = this.add.graphics();
-        graphics.fillStyle(0x006600); // dark green
-        graphics.fillRect(0, 0, 32, 32);
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(7, 7, 6, 6);
-        graphics.fillRect(19, 7, 6, 6);
-        graphics.generateTexture('ploomi_idle', 32, 32);
-        graphics.destroy();
+        // Textures survive scene restarts, so only generate them once
+        if (this.textures.exists('ploomi_idle')) {
+            return;
+        }
 
-        // Left
-        graphics = this.add.graphics();
-        graphics.fillStyle(0x006600);
-        graphics.fillRect(0, 0, 32, 32);
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(5, 7, 6, 6);
-        graphics.fillRect(17, 7, 6, 6);
-        graphics.generateTexture('ploomi_left', 32, 32);
-        graphics.destroy();
+        // Ploomi: dark green square, eyes shift with direction
+        const ploomi = (key, eyeX) => {
+            const g = this.add.graphics();
+            g.fillStyle(0x006600);
+            g.fillRect(0, 0, 32, 32);
+            g.fillStyle(0x000000);
+            g.fillRect(eyeX, 7, 6, 6);
+            g.fillRect(eyeX + 12, 7, 6, 6);
+            g.generateTexture(key, 32, 32);
+            g.destroy();
+        };
+        ploomi('ploomi_idle', 7);
+        ploomi('ploomi_left', 5);
+        ploomi('ploomi_right', 9);
 
-        // Right
-        graphics = this.add.graphics();
-        graphics.fillStyle(0x006600);
-        graphics.fillRect(0, 0, 32, 32);
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(9, 7, 6, 6);
-        graphics.fillRect(21, 7, 6, 6);
-        graphics.generateTexture('ploomi_right', 32, 32);
-        graphics.destroy();
+        // Heart
+        let g = this.add.graphics();
+        g.fillStyle(0xff0000);
+        g.fillRect(6, 10, 4, 4);
+        g.fillRect(4, 8, 8, 4);
+        g.fillRect(2, 6, 12, 4);
+        g.fillRect(0, 4, 16, 4);
+        g.fillRect(2, 2, 12, 4);
+        g.fillRect(4, 0, 8, 4);
+        g.generateTexture('heart', 16, 16);
+        g.destroy();
 
-        // Heart texture
-        graphics = this.add.graphics();
-        graphics.fillStyle(0xff0000);
-        // Simple heart shape
-        graphics.fillRect(6, 10, 4, 4);
-        graphics.fillRect(4, 8, 8, 4);
-        graphics.fillRect(2, 6, 12, 4);
-        graphics.fillRect(0, 4, 16, 4);
-        graphics.fillRect(2, 2, 12, 4);
-        graphics.fillRect(4, 0, 8, 4);
-        graphics.generateTexture('heart', 16, 16);
-        graphics.destroy();
+        // Angry eye, looking left
+        g = this.add.graphics();
+        g.fillStyle(0x000000);
+        g.fillCircle(20, 20, 20);
+        g.fillStyle(0xffffff);
+        g.fillCircle(20, 20, 12);
+        g.fillStyle(0x000000);
+        g.fillRect(8, 8, 24, 12); // angry lid
+        g.fillCircle(10, 20, 6); // pupil
+        g.fillCircle(50, 20, 12);
+        g.generateTexture('eye', 70, 40);
+        g.destroy();
+
+        // Trail particle
+        g = this.add.graphics();
+        g.fillStyle(0x00aa00);
+        g.fillRect(0, 0, 8, 8);
+        g.generateTexture('spark', 8, 8);
+        g.destroy();
     }
 
     create() {
-        // Background
-        this.cameras.main.setBackgroundColor('#0a008fff');
+        this.cameras.main.setBackgroundColor('#001133');
+        this.physics.world.setBounds(0, 0, WIDTH, HEIGHT);
 
-        // Create a night sky backdrop with clouds
-        let sky = this.add.rectangle(50000, 300, 100000, 2000, 0x001133);
-        sky.setScrollFactor(1);
-        sky.setDepth(-10);
-
-        // Add repeating Mario-style bushes
-        let bushGraphics = this.add.graphics();
-        bushGraphics.fillStyle(0x000000);
-        
-        // Bushes on the floor
-        for (let bushX = 0; bushX < 100000; bushX += 1000) {
-            // Draw Mario-style bush (3 circles)
-            bushGraphics.fillCircle(bushX + 20, 575, 15);
-            bushGraphics.fillCircle(bushX + 40, 565, 18);
-            bushGraphics.fillCircle(bushX + 60, 575, 15);
-        }
-        
-        bushGraphics.setScrollFactor(1);
-        bushGraphics.setDepth(-8);
-
-        // Set physics world
-        this.physics.world.setBounds(0, 0, 800, 2000);
-
-        // Health
-        this.health = 3;
-        this.healthText = this.add.text(10, 10, 'Health: 3', { fontSize: '20px', color: '#ffffff', fontFamily: 'Courier New' });
-        this.healthText.setScrollFactor(0);
-        this.healthText.setDepth(100);
-
-        // Create platforms
+        // Platforms
         this.platforms = this.physics.add.staticGroup();
-        
-        // Ground platform
-        let ground = this.add.rectangle(50000, 590, 100000, 20, 0x444444);
-        this.physics.add.existing(ground, true);
+        const ground = this.add.rectangle(WIDTH / 2, GROUND_Y + 10, WIDTH, 20, 0x444444);
         this.platforms.add(ground);
 
-        // Invisible walls to prevent falling off
-        let leftWall = this.add.rectangle(-50, 300, 100, 2000, 0x001a4d);
-        this.physics.add.existing(leftWall, true);
-        this.platforms.add(leftWall);
-        leftWall.setDepth(-8);
-        
-        let rightWall = this.add.rectangle(850, 300, 100, 2000, 0x001a4d);
-        this.physics.add.existing(rightWall, true);
-        this.platforms.add(rightWall);
-        rightWall.setDepth(-8);
-
         // Player
-        this.player = this.physics.add.sprite(100, 540, 'ploomi_idle');
+        this.player = this.physics.add.sprite(PLAYER.startX, GROUND_Y - 16, 'ploomi_idle');
+        this.player.setCollideWorldBounds(true);
         this.player.setBounce(0.2);
         this.player.setDragX(1000);
+        this.player.setMaxVelocity(PLAYER.maxSpeed, 1000);
+        this.invulnerableUntil = 0;
 
-        // Create particle emitter for dash trail
-        this.particles = this.add.particles(0x00aa00);
-        this.emitter = this.particles.createEmitter({
+        // Dash trail
+        this.emitter = this.add.particles('spark').createEmitter({
             speed: 0,
-            scale: { start: 0.5, end: 0 },
+            scale: { start: 1, end: 0 },
             alpha: { start: 0.8, end: 0 },
             lifespan: 400,
-            gravityY: 0,
-            emitting: false
+            on: false
         });
 
-        // Colliders
+        // Eye enemy
+        this.eyeKills = 0;
+        this.eye = this.physics.add.sprite(EYE.maxX, GROUND_Y, 'eye').setOrigin(0.5, 1);
+        this.eye.body.setAllowGravity(false);
+        this.eye.setImmovable(true);
+        this.eye.setVelocityX(-EYE.speed);
+
         this.physics.add.collider(this.player, this.platforms);
+        this.physics.add.overlap(this.player, this.eye, this.touchEye, null, this);
+
+        // HUD
+        this.health = PLAYER.maxHealth;
+        this.hearts = [];
+        for (let i = 0; i < PLAYER.maxHealth; i++) {
+            this.hearts.push(this.add.image(20 + i * 24, 20, 'heart').setScrollFactor(0).setDepth(100));
+        }
+        this.scoreText = this.add.text(WIDTH - 10, 10, 'Eyes: 0', {
+            fontSize: '20px', color: '#ffffff', fontFamily: 'Courier New'
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
 
         // Input
         this.cursors = this.input.keyboard.createCursorKeys();
         this.zKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+        this.gameOver = false;
     }
 
-    update() {
-        // Controls
+    update(time) {
+        if (this.gameOver) {
+            return;
+        }
+
+        const body = this.player.body;
+        const sprinting = this.zKey.isDown;
+        body.maxVelocity.x = sprinting ? PLAYER.sprintSpeed : PLAYER.maxSpeed;
+
         if (this.cursors.left.isDown) {
-            this.player.setAccelerationX(-350);
+            this.player.setAccelerationX(-PLAYER.accel);
         } else if (this.cursors.right.isDown) {
-            let speed = 350;
-            if (this.zKey.isDown) {
-                speed = 350;
-            }
-            this.player.setAccelerationX(speed);
+            this.player.setAccelerationX(PLAYER.accel);
         } else {
             this.player.setAccelerationX(0);
         }
 
-        // Emit particles only when Z key is pressed
-        if (this.zKey.isDown) {
-            // Emit behind Ploomi based on movement direction
-            if (this.player.body.velocity.x > 0) {
-                // Moving right, emit from left side (back)
-                this.emitter.emitParticleAt(this.player.x - 20, this.player.y, 3);
-            } else if (this.player.body.velocity.x < 0) {
-                // Moving left, emit from right side (back)
-                this.emitter.emitParticleAt(this.player.x + 20, this.player.y, 3);
-            }
+        if (this.cursors.up.isDown && (body.blocked.down || body.touching.down)) {
+            this.player.setVelocityY(PLAYER.jump);
         }
 
-        if (this.cursors.up.isDown && this.player.body.touching.down) {
-            this.player.setVelocityY(-290);
+        // Trail behind Ploomi while sprinting
+        if (sprinting && Math.abs(body.velocity.x) > 10) {
+            const behind = body.velocity.x > 0 ? -16 : 16;
+            this.emitter.emitParticleAt(this.player.x + behind, this.player.y, 2);
         }
 
-        // Update eye direction
-        if (this.player.body.velocity.x > 10) {
+        if (body.velocity.x > 10) {
             this.player.setTexture('ploomi_right');
-        } else if (this.player.body.velocity.x < -10) {
+        } else if (body.velocity.x < -10) {
             this.player.setTexture('ploomi_left');
         } else {
             this.player.setTexture('ploomi_idle');
         }
 
-        // Check if player falls off the world
-        if (this.player.y > 2000) {
-            this.player.setPosition(100, 540);
-            this.health--;
-            this.healthText.setText('Health: ' + this.health);
-            if (this.health <= 0) {
-                this.scene.start('TitleScene');
+        // Blink while invulnerable
+        this.player.setAlpha(time < this.invulnerableUntil && Math.floor(time / 80) % 2 ? 0.3 : 1);
+
+        // Eye patrols between minX and maxX, looking where it goes
+        if (this.eye.active) {
+            const speed = EYE.speed + this.eyeKills * EYE.speedPerKill;
+            if (this.eye.x <= EYE.minX) {
+                this.eye.setVelocityX(speed);
+            } else if (this.eye.x >= EYE.maxX) {
+                this.eye.setVelocityX(-speed);
             }
+            this.eye.setFlipX(this.eye.body.velocity.x > 0);
         }
     }
 
-    reachGoal() {
-        // For now, restart the level
-        this.scene.restart();
+    touchEye(player, eye) {
+        if (!eye.active || this.gameOver) {
+            return;
+        }
+
+        // Falling onto the top of the eye = stomp
+        const stomp = player.body.velocity.y > 0 && player.body.bottom <= eye.body.top + 12;
+        if (stomp) {
+            this.killEye();
+            player.setVelocityY(PLAYER.stompBounce);
+        } else {
+            this.hurtPlayer(eye);
+        }
+    }
+
+    killEye() {
+        this.eye.disableBody(false, false);
+        this.eye.setActive(false);
+        this.eyeKills++;
+        this.scoreText.setText('Eyes: ' + this.eyeKills);
+        this.cameras.main.shake(120, 0.005);
+
+        this.tweens.add({
+            targets: this.eye,
+            scaleY: 0.2,
+            alpha: 0,
+            duration: 250,
+            onComplete: () => this.eye.setVisible(false)
+        });
+
+        this.time.delayedCall(EYE.respawnMs, () => {
+            if (this.gameOver) {
+                return;
+            }
+            this.eye.enableBody(true, EYE.maxX, GROUND_Y, true, true);
+            this.eye.setScale(1).setAlpha(1);
+            this.eye.body.setAllowGravity(false);
+            this.eye.setVelocityX(-(EYE.speed + this.eyeKills * EYE.speedPerKill));
+        });
+    }
+
+    hurtPlayer(eye) {
+        if (this.time.now < this.invulnerableUntil) {
+            return;
+        }
+
+        this.health--;
+        this.hearts.forEach((heart, i) => heart.setVisible(i < this.health));
+        this.invulnerableUntil = this.time.now + PLAYER.invulnerableMs;
+        this.cameras.main.flash(100, 120, 0, 0);
+
+        // Knock Ploomi away from the eye
+        const dir = this.player.x < eye.x ? -1 : 1;
+        this.player.setVelocity(dir * 250, -200);
+
+        if (this.health <= 0) {
+            this.endGame();
+        }
+    }
+
+    endGame() {
+        this.gameOver = true;
+        this.physics.pause();
+        this.player.setAlpha(1).setTint(0xff0000);
+        this.add.text(WIDTH / 2, HEIGHT / 2, 'GAME OVER', {
+            fontSize: '64px', color: '#ffffff', fontFamily: FONT
+        }).setOrigin(0.5).setDepth(100);
+        this.time.delayedCall(1500, () => this.scene.start('TitleScene'));
     }
 }
 
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 600,
+    width: WIDTH,
+    height: HEIGHT,
     parent: 'game-container',
     pixelArt: true,
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 300 },
+            gravity: { y: 600 },
             debug: false
         }
     },
